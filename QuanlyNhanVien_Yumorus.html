@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HRPRO— Quản lý nhân viên</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+  html, body { margin: 0; padding: 0; background: #F5F3EE; }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useRef } = React;
+
+// ---- Lightweight lucide-style icon components (no external icon package needed) ----
+function mkIcon(paths, viewBox = "0 0 24 24") {
+  return function Icon({ size = 16, color = "currentColor", style, ...rest }) {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox={viewBox}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0, ...style }}
+        {...rest}
+      >
+        {paths}
+      </svg>
+    );
+  };
+}
+
+const Users = mkIcon(
+  <>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </>
+);
+
+const BarChart3 = mkIcon(
+  <>
+    <path d="M3 3v18h18" />
+    <path d="M18 17V9" />
+    <path d="M13 17V5" />
+    <path d="M8 17v-3" />
+  </>
+);
+
+const Plus = mkIcon(
+  <>
+    <path d="M12 5v14" />
+    <path d="M5 12h14" />
+  </>
+);
+
+const Pencil = mkIcon(
+  <>
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    <path d="m15 5 4 4" />
+  </>
+);
+
+const Trash2 = mkIcon(
+  <>
+    <path d="M3 6h18" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <line x1="10" y1="11" x2="10" y2="17" />
+    <line x1="14" y1="11" x2="14" y2="17" />
+  </>
+);
+
+const X = mkIcon(
+  <>
+    <path d="M18 6 6 18" />
+    <path d="m6 6 12 12" />
+  </>
+);
+
+const Search = mkIcon(
+  <>
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </>
+);
+
+const Briefcase = mkIcon(
+  <>
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+  </>
+);
+
+const ArrowUp = mkIcon(
+  <>
+    <path d="M12 19V5" />
+    <path d="m5 12 7-7 7 7" />
+  </>
+);
+
+const ArrowDown = mkIcon(
+  <>
+    <path d="M12 5v14" />
+    <path d="m19 12-7 7-7-7" />
+  </>
+);
+
+const ArrowUpDown = mkIcon(
+  <>
+    <path d="m21 16-4 4-4-4" />
+    <path d="M17 20V4" />
+    <path d="m3 8 4-4 4 4" />
+    <path d="M7 4v16" />
+  </>
+);
+
+const Download = mkIcon(
+  <>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="M7 10l5 5 5-5" />
+    <path d="M12 15V3" />
+  </>
+);
+
+const Upload = mkIcon(
+  <>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="M17 8l-5-5-5 5" />
+    <path d="M12 3v12" />
+  </>
+);
+
+const CalendarClock = mkIcon(
+  <>
+    <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5" />
+    <path d="M16 2v4" />
+    <path d="M8 2v4" />
+    <path d="M3 10h18" />
+    <circle cx="18" cy="18" r="4" />
+    <path d="M18 16.5V18l1 1" />
+  </>
+);
+
+const Wallet = mkIcon(
+  <>
+    <path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" />
+    <path d="M21 12H15a2 2 0 0 0 0 4h6z" />
+  </>
+);
+
+const CheckCircle2 = mkIcon(
+  <>
+    <circle cx="12" cy="12" r="10" />
+    <path d="m9 12 2 2 4-4" />
+  </>
+);
+
+const XCircle = mkIcon(
+  <>
+    <circle cx="12" cy="12" r="10" />
+    <path d="m15 9-6 6" />
+    <path d="m9 9 6 6" />
+  </>
+);
+
+const Clock3 = mkIcon(
+  <>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 6v6h5" />
+  </>
+);
+
+const TrendingUp = mkIcon(
+  <>
+    <path d="m22 7-8.5 8.5-5-5L2 17" />
+    <path d="M16 7h6v6" />
+  </>
+);
+
+const SlidersHorizontal = mkIcon(
+  <>
+    <line x1="21" y1="4" x2="14" y2="4" />
+    <line x1="10" y1="4" x2="3" y2="4" />
+    <line x1="21" y1="12" x2="12" y2="12" />
+    <line x1="8" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="20" x2="16" y2="20" />
+    <line x1="12" y1="20" x2="3" y2="20" />
+    <line x1="14" y1="2" x2="14" y2="6" />
+    <line x1="8" y1="10" x2="8" y2="14" />
+    <line x1="16" y1="18" x2="16" y2="22" />
+  </>
+);
+const COLORS = {
+  bg: "#F5F3EE",
+  surface: "#FFFFFF",
+  ink: "#22262B",
+  inkSoft: "#6B6F76",
+  primary: "#2C4A6E",
+  primarySoft: "#3E5F82",
+  accent: "#B9793C",
+  border: "#E4DFD3",
+  danger: "#B23A34",
+  green: "#3E7A4F",
+};
+
+const DEPARTMENTS = ["Kinh doanh", "Kỹ thuật", "Nhân sự", "Kế toán", "Marketing"];
+const PAGE_SIZE = 6;
+const DEFAULT_ATTENDANCE = { workDays: 22, lateDays: 0, earlyDays: 0, absentDays: 0 };
+
+const seedEmployees = [
+  { id: 1, name: "Nguyễn Văn An", position: "Trưởng phòng", department: "Kinh doanh", hireDate: "2017-03-12", salary: 22000000, email: "an.nguyen@congty.vn", phone: "0901234567", address: "Q.1, TP.HCM", dependents: 2, allowance: 2000000, bonus: 1000000, leaveQuota: 12, attendance: { workDays: 22, lateDays: 0, earlyDays: 0, absentDays: 0 } },
+  { id: 2, name: "Trần Thị Bích", position: "Kỹ sư phần mềm", department: "Kỹ thuật", hireDate: "2021-08-01", salary: 18000000, email: "bich.tran@congty.vn", phone: "0902234567", address: "Q.3, TP.HCM", dependents: 0, allowance: 1000000, bonus: 500000, leaveQuota: 12, attendance: { workDays: 20, lateDays: 2, earlyDays: 0, absentDays: 0 } },
+  { id: 3, name: "Lê Hoàng Cường", position: "Chuyên viên nhân sự", department: "Nhân sự", hireDate: "2015-01-20", salary: 15000000, email: "cuong.le@congty.vn", phone: "0903234567", address: "Q.Bình Thạnh, TP.HCM", dependents: 1, allowance: 800000, bonus: 0, leaveQuota: 12, attendance: { workDays: 22, lateDays: 0, earlyDays: 0, absentDays: 0 } },
+  { id: 4, name: "Phạm Thị Duyên", position: "Kế toán trưởng", department: "Kế toán", hireDate: "2012-06-10", salary: 25000000, email: "duyen.pham@congty.vn", phone: "0904234567", address: "Q.7, TP.HCM", dependents: 2, allowance: 2500000, bonus: 2000000, leaveQuota: 14, attendance: { workDays: 22, lateDays: 0, earlyDays: 0, absentDays: 0 } },
+  { id: 5, name: "Hoàng Văn Em", position: "Nhân viên marketing", department: "Marketing", hireDate: "2023-11-05", salary: 12000000, email: "em.hoang@congty.vn", phone: "0905234567", address: "Q.Gò Vấp, TP.HCM", dependents: 0, allowance: 500000, bonus: 0, leaveQuota: 12, attendance: { workDays: 19, lateDays: 1, earlyDays: 1, absentDays: 2 } },
+  { id: 6, name: "Vũ Thị Hoa", position: "Kỹ sư phần mềm", department: "Kỹ thuật", hireDate: "2019-04-18", salary: 20000000, email: "hoa.vu@congty.vn", phone: "0906234567", address: "Q.10, TP.HCM", dependents: 1, allowance: 1000000, bonus: 500000, leaveQuota: 12, attendance: { workDays: 22, lateDays: 0, earlyDays: 0, absentDays: 0 } },
+  { id: 7, name: "Đặng Minh Khôi", position: "Nhân viên kinh doanh", department: "Kinh doanh", hireDate: "2022-02-14", salary: 14000000, email: "khoi.dang@congty.vn", phone: "0907234567", address: "Q.Tân Bình, TP.HCM", dependents: 0, allowance: 700000, bonus: 300000, leaveQuota: 12, attendance: { workDays: 21, lateDays: 1, earlyDays: 0, absentDays: 0 } },
+  { id: 8, name: "Bùi Thị Lan", position: "Chuyên viên tuyển dụng", department: "Nhân sự", hireDate: "2018-09-01", salary: 16000000, email: "lan.bui@congty.vn", phone: "0908234567", address: "Q.4, TP.HCM", dependents: 1, allowance: 800000, bonus: 0, leaveQuota: 12, attendance: { workDays: 22, lateDays: 0, earlyDays: 0, absentDays: 0 } },
+  { id: 9, name: "Ngô Văn Minh", position: "Kế toán viên", department: "Kế toán", hireDate: "2020-07-22", salary: 13500000, email: "minh.ngo@congty.vn", phone: "0909234567", address: "Q.2, TP.HCM", dependents: 0, allowance: 500000, bonus: 0, leaveQuota: 12, attendance: { workDays: 22, lateDays: 0, earlyDays: 0, absentDays: 0 } },
+  { id: 10, name: "Đỗ Thị Nga", position: "Trưởng phòng marketing", department: "Marketing", hireDate: "2014-05-30", salary: 21000000, email: "nga.do@congty.vn", phone: "0910234567", address: "Q.5, TP.HCM", dependents: 2, allowance: 2000000, bonus: 1000000, leaveQuota: 14, attendance: { workDays: 22, lateDays: 0, earlyDays: 0, absentDays: 0 } },
+];
+
+const seedLeaveRequests = [
+  { id: 1, employeeId: 5, fromDate: "2026-09-10", toDate: "2026-09-11", reason: "Việc gia đình", status: "Chờ duyệt" },
+  { id: 2, employeeId: 2, fromDate: "2026-08-14", toDate: "2026-08-14", reason: "Khám sức khỏe", status: "Đã duyệt" },
+  { id: 3, employeeId: 7, fromDate: "2026-07-01", toDate: "2026-07-03", reason: "Nghỉ phép năm", status: "Đã duyệt" },
+];
+
+const seedSalaryHistory = [
+  { id: 1, employeeId: 1, date: "2025-01-01", oldSalary: 19000000, newSalary: 22000000, note: "Tăng lương định kỳ hàng năm" },
+  { id: 2, employeeId: 4, date: "2024-06-01", oldSalary: 22000000, newSalary: 25000000, note: "Ghi nhận đóng góp xuất sắc" },
+];
+
+function yearsOfService(hireDateStr, ref = new Date()) {
+  const hire = new Date(hireDateStr);
+  let years = ref.getFullYear() - hire.getFullYear();
+  const m = ref.getMonth() - hire.getMonth();
+  if (m < 0 || (m === 0 && ref.getDate() < hire.getDate())) years--;
+  return years;
+}
+
+function formatVND(n) {
+  if (!n && n !== 0) return "0 đ";
+  return Math.round(Number(n)).toLocaleString("vi-VN") + " đ";
+}
+
+function calcPIT(taxable) {
+  const brackets = [
+    [5000000, 0.05], [10000000, 0.1], [18000000, 0.15], [32000000, 0.2],
+    [52000000, 0.25], [80000000, 0.3], [Infinity, 0.35],
+  ];
+  let tax = 0, prev = 0;
+  for (const [upper, rate] of brackets) {
+    if (taxable > prev) {
+      tax += (Math.min(taxable, upper) - prev) * rate;
+      prev = upper;
+    } else break;
+  }
+  return tax;
+}
+
+function computePayroll(emp) {
+  const base = Number(emp.salary || 0);
+  const gross = base + Number(emp.allowance || 0) + Number(emp.bonus || 0);
+  const insurance = Math.round(base * 0.105);
+  const deduction = 11000000 + Number(emp.dependents || 0) * 4400000;
+  const taxable = Math.max(0, gross - insurance - deduction);
+  const tax = Math.round(calcPIT(taxable));
+  return { gross, insurance, tax, net: gross - insurance - tax };
+}
+
+// Tính số ngày nghỉ phép theo NGÀY LÀM VIỆC thực tế (Thứ 2 - Thứ 6).
+// Thứ 7 / Chủ Nhật nằm trong khoảng nghỉ sẽ không bị trừ vào số ngày phép.
+function leaveDaysCount(from, to) {
+  if (!from || !to) return 0;
+  const start = new Date(from);
+  const end = new Date(to);
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return 0;
+
+  let count = 0;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const dow = cur.getDay(); // 0 = Chủ Nhật, 6 = Thứ 7
+    if (dow !== 0 && dow !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+function emptyForm() {
+  return { name: "", position: "", department: DEPARTMENTS[0], hireDate: "", salary: "", email: "", phone: "", address: "", dependents: "0" };
+}
+
+function EmployeeManager() {
+  const [employees, setEmployees] = useState(seedEmployees);
+  const [leaveRequests, setLeaveRequests] = useState(seedLeaveRequests);
+  const [salaryHistory, setSalaryHistory] = useState(seedSalaryHistory);
+  const [salaryBatches, setSalaryBatches] = useState([]);
+  const [view, setView] = useState("list");
+
+  // list view state
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("name");
+  const [sortDir, setSortDir] = useState("asc");
+  const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterDept, setFilterDept] = useState("Tất cả");
+  const [minSalary, setMinSalary] = useState("");
+  const [maxSalary, setMaxSalary] = useState("");
+  const [minYears, setMinYears] = useState("");
+  const [maxYears, setMaxYears] = useState("");
+  const [importMsg, setImportMsg] = useState("");
+  const fileInputRef = useRef(null);
+
+  // employee modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(emptyForm());
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  // leave modal
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({ employeeId: "", fromDate: "", toDate: "", reason: "" });
+
+  // raise modal
+  const [raiseModalOpen, setRaiseModalOpen] = useState(false);
+  const [raiseForm, setRaiseForm] = useState({ employeeId: "", newSalary: "", note: "" });
+  const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [batchForm, setBatchForm] = useState({ name: "", effectiveDate: new Date().toISOString().slice(0, 10), scope: "all", department: DEPARTMENTS[0], increaseType: "percent", increaseValue: "", note: "" });
+
+  const inputStyle = {
+    width: "100%", padding: "9px 12px", borderRadius: 6, border: `1px solid ${COLORS.border}`,
+    fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 14, color: COLORS.ink, background: "#FCFBF8",
+    outline: "none", boxSizing: "border-box",
+  };
+  const label = { fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 5, display: "block", fontFamily: "'IBM Plex Sans', sans-serif" };
+  const smallInput = { ...inputStyle, padding: "6px 8px", fontSize: 13, width: 90, textAlign: "right" };
+
+  // ---- filtering, sorting, pagination for list view ----
+  const filteredSorted = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = employees.filter((e) => {
+      if (q && !(e.name.toLowerCase().includes(q) || e.department.toLowerCase().includes(q) || e.position.toLowerCase().includes(q))) return false;
+      if (filterDept !== "Tất cả" && e.department !== filterDept) return false;
+      if (minSalary && Number(e.salary) < Number(minSalary)) return false;
+      if (maxSalary && Number(e.salary) > Number(maxSalary)) return false;
+      const yrs = yearsOfService(e.hireDate);
+      if (minYears && yrs < Number(minYears)) return false;
+      if (maxYears && yrs > Number(maxYears)) return false;
+      return true;
+    });
+    list = [...list].sort((a, b) => {
+      let va, vb;
+      if (sortKey === "years") { va = yearsOfService(a.hireDate); vb = yearsOfService(b.hireDate); }
+      else if (sortKey === "salary") { va = Number(a.salary); vb = Number(b.salary); }
+      else if (sortKey === "hireDate") { va = a.hireDate; vb = b.hireDate; }
+      else { va = a[sortKey]?.toLowerCase?.() ?? a[sortKey]; vb = b[sortKey]?.toLowerCase?.() ?? b[sortKey]; }
+      if (va < vb) return sortDir === "asc" ? -1 : 1;
+      if (va > vb) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return list;
+  }, [employees, search, filterDept, minSalary, maxSalary, minYears, maxYears, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE));
+  const pageItems = filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function toggleSort(key) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  }
+  function SortIcon({ colKey }) {
+    if (sortKey !== colKey) return <ArrowUpDown size={12} style={{ opacity: 0.4 }} />;
+    return sortDir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />;
+  }
+
+  const stats = useMemo(() => {
+    const total = employees.length;
+    const senior = employees.filter((e) => yearsOfService(e.hireDate) > 5);
+    const byDept = DEPARTMENTS.map((d) => {
+      const inDept = employees.filter((e) => e.department === d);
+      const seniorInDept = inDept.filter((e) => yearsOfService(e.hireDate) > 5);
+      return { department: d, count: inDept.length, senior: seniorInDept.length };
+    }).filter((d) => d.count > 0);
+    const avgSalary = total ? employees.reduce((s, e) => s + Number(e.salary || 0), 0) / total : 0;
+    return { total, senior, byDept, avgSalary };
+  }, [employees]);
+
+  // ---- employee CRUD ----
+  function openAddModal() { setEditingId(null); setForm(emptyForm()); setModalOpen(true); }
+  function openEditModal(emp) { setEditingId(emp.id); setForm({ ...emp, salary: String(emp.salary), dependents: String(emp.dependents ?? 0) }); setModalOpen(true); }
+  function closeModal() { setModalOpen(false); setEditingId(null); setForm(emptyForm()); }
+
+  function handleSave() {
+    if (!form.name.trim() || !form.hireDate) return;
+    if (editingId) {
+      setEmployees((prev) => prev.map((e) => (e.id === editingId ? { ...e, ...form, salary: Number(form.salary) || 0, dependents: Number(form.dependents) || 0 } : e)));
+    } else {
+      const newId = employees.length ? Math.max(...employees.map((e) => e.id)) + 1 : 1;
+      setEmployees((prev) => [...prev, { ...form, id: newId, salary: Number(form.salary) || 0, dependents: Number(form.dependents) || 0, allowance: 0, bonus: 0, leaveQuota: 12, attendance: { ...DEFAULT_ATTENDANCE } }]);
+    }
+    closeModal();
+  }
+  function handleDelete(id) { setEmployees((prev) => prev.filter((e) => e.id !== id)); setConfirmDeleteId(null); }
+
+  // ---- export / import ----
+  function exportToExcel() {
+    const rows = employees.map((e) => ({
+      "Họ tên": e.name, "Chức vụ": e.position, "Phòng ban": e.department, "Ngày vào làm": e.hireDate,
+      "Thâm niên (năm)": yearsOfService(e.hireDate), "Lương cơ bản": e.salary, "Email": e.email,
+      "Số điện thoại": e.phone, "Địa chỉ": e.address,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Nhân viên");
+    XLSX.writeFile(wb, "danh_sach_nhan_vien.xlsx");
+  }
+
+  function handleImportFile(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        let nextId = employees.length ? Math.max(...employees.map((x) => x.id)) + 1 : 1;
+        const imported = rows
+          .map((r) => ({
+            id: nextId++,
+            name: r["Họ tên"] || r["Ho ten"] || "",
+            position: r["Chức vụ"] || "",
+            department: r["Phòng ban"] || DEPARTMENTS[0],
+            hireDate: r["Ngày vào làm"] || "",
+            salary: Number(r["Lương cơ bản"] || r["Lương"] || 0),
+            email: r["Email"] || "",
+            phone: r["Số điện thoại"] || "",
+            address: r["Địa chỉ"] || "",
+            dependents: 0, allowance: 0, bonus: 0, leaveQuota: 12,
+            attendance: { ...DEFAULT_ATTENDANCE },
+          }))
+          .filter((x) => x.name);
+        setEmployees((prev) => [...prev, ...imported]);
+        setImportMsg(`Đã nhập ${imported.length} nhân viên từ file.`);
+      } catch (err) {
+        setImportMsg("Không đọc được file. Vui lòng dùng file .xlsx với cột: Họ tên, Chức vụ, Phòng ban, Ngày vào làm, Lương cơ bản.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    ev.target.value = "";
+  }
+
+  // ---- attendance ----
+  function updateAttendance(id, field, value) {
+    setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, attendance: { ...e.attendance, [field]: Math.max(0, Number(value) || 0) } } : e)));
+  }
+
+  function leaveUsedDays(employeeId) {
+    return leaveRequests.filter((r) => r.employeeId === employeeId && r.status === "Đã duyệt").reduce((s, r) => s + leaveDaysCount(r.fromDate, r.toDate), 0);
+  }
+
+  function submitLeaveRequest() {
+    if (!leaveForm.employeeId || !leaveForm.fromDate || !leaveForm.toDate) return;
+    if (new Date(leaveForm.toDate) < new Date(leaveForm.fromDate)) return; // ngày đến phải >= ngày từ
+    const newId = leaveRequests.length ? Math.max(...leaveRequests.map((r) => r.id)) + 1 : 1;
+    setLeaveRequests((prev) => [...prev, { id: newId, employeeId: Number(leaveForm.employeeId), fromDate: leaveForm.fromDate, toDate: leaveForm.toDate, reason: leaveForm.reason, status: "Chờ duyệt" }]);
+    setLeaveModalOpen(false);
+    setLeaveForm({ employeeId: "", fromDate: "", toDate: "", reason: "" });
+  }
+  function setLeaveStatus(id, status) { setLeaveRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r))); }
+
+  // ---- payroll ----
+  function updatePayrollField(id, field, value) {
+    setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: Math.max(0, Number(value) || 0) } : e)));
+  }
+  function submitRaise() {
+    const emp = employees.find((e) => e.id === Number(raiseForm.employeeId));
+    if (!emp || !raiseForm.newSalary) return;
+    const newId = salaryHistory.length ? Math.max(...salaryHistory.map((r) => r.id)) + 1 : 1;
+    setSalaryHistory((prev) => [...prev, { id: newId, employeeId: emp.id, date: new Date().toISOString().slice(0, 10), oldSalary: emp.salary, newSalary: Number(raiseForm.newSalary), note: raiseForm.note }]);
+    setEmployees((prev) => prev.map((e) => (e.id === emp.id ? { ...e, salary: Number(raiseForm.newSalary) } : e)));
+    setRaiseModalOpen(false);
+    setRaiseForm({ employeeId: "", newSalary: "", note: "" });
+  }
+
+  function batchEmployees() {
+    if (batchForm.scope === "department") return employees.filter((e) => e.department === batchForm.department);
+    if (batchForm.scope === "selected") return employees.filter((e) => (batchForm.employeeIds || []).includes(e.id));
+    return employees;
+  }
+
+  function previewBatchSalary(emp) {
+    const value = Number(batchForm.increaseValue || 0);
+    if (batchForm.increaseType === "percent") return Math.round(emp.salary * (1 + value / 100));
+    if (batchForm.increaseType === "amount") return Math.max(0, emp.salary + value);
+    return Math.max(0, value);
+  }
+
+  function submitBatchRaise() {
+    const targets = batchEmployees();
+    if (!batchForm.name.trim() || !batchForm.effectiveDate || !targets.length || Number(batchForm.increaseValue) <= 0) return;
+    const batchId = salaryBatches.length ? Math.max(...salaryBatches.map((b) => b.id)) + 1 : 1;
+    const historyStart = salaryHistory.length ? Math.max(...salaryHistory.map((r) => r.id)) + 1 : 1;
+    const records = targets.map((emp, index) => ({
+      id: historyStart + index, batchId, employeeId: emp.id, date: batchForm.effectiveDate, oldSalary: emp.salary, newSalary: previewBatchSalary(emp), note: batchForm.note || batchForm.name
+    }));
+    setSalaryHistory((prev) => [...prev, ...records]);
+    setEmployees((prev) => prev.map((e) => { const r = records.find((x) => x.employeeId === e.id); return r ? { ...e, salary: r.newSalary } : e; }));
+    setSalaryBatches((prev) => [...prev, { id: batchId, name: batchForm.name.trim(), effectiveDate: batchForm.effectiveDate, scope: batchForm.scope, department: batchForm.scope === "department" ? batchForm.department : "", increaseType: batchForm.increaseType, increaseValue: Number(batchForm.increaseValue), employeeCount: targets.length, note: batchForm.note, status: "Đã áp dụng" }]);
+    setBatchModalOpen(false);
+    setBatchForm({ name: "", effectiveDate: new Date().toISOString().slice(0, 10), scope: "all", department: DEPARTMENTS[0], increaseType: "percent", increaseValue: "", note: "" });
+  }
+
+  function empName(id) { return employees.find((e) => e.id === id)?.name || "—"; }
+
+  const navItem = (key, icon, text) => (
+    <button
+      className="nav-btn"
+      onClick={() => setView(key)}
+      style={{
+        width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 7,
+        border: "none", cursor: "pointer", marginBottom: 6, fontSize: 14, textAlign: "left",
+        background: view === key ? "#F2EFE7" : "transparent", color: view === key ? COLORS.primary : "#DCE3EA",
+        fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: view === key ? 600 : 500,
+      }}
+    >
+      {icon} {text}
+    </button>
+  );
+
+  return (
+    <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", background: COLORS.bg, minHeight: "100%", display: "flex", color: COLORS.ink }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+        * { box-sizing: border-box; }
+        .emp-row:hover { background: #FAF8F3; }
+        button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid ${COLORS.accent}; outline-offset: 1px; }
+        .icon-btn:hover { opacity: 0.75; }
+        ::placeholder { color: #A6A9AE; }
+        th.sortable { cursor: pointer; user-select: none; }
+        .num-input::-webkit-outer-spin-button, .num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+      `}</style>
+
+      {/* Sidebar */}
+      <div style={{ width: 232, flexShrink: 0, background: COLORS.primary, color: "#F2EFE7", padding: "28px 18px", minHeight: "100vh" }}>
+        <div style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: 20, marginBottom: 4 }}>Hồ sơ nhân sự</div>
+        <div style={{ fontSize: 12.5, color: "#B9C4D1", marginBottom: 28 }}>Danh mục quản lý</div>
+
+        {navItem("list", <Users size={17} />, "Danh sách nhân viên")}
+        {navItem("stats", <BarChart3 size={17} />, "Thống kê thâm niên")}
+        {navItem("attendance", <CalendarClock size={17} />, "Chấm công & nghỉ phép")}
+        {navItem("payroll", <Wallet size={17} />, "Bảng lương")}
+
+        <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.15)", fontSize: 12, color: "#A9B6C4" }}>
+          Tổng số nhân viên<br />
+          <span style={{ fontFamily: "'Lora', serif", fontSize: 26, color: "#F2EFE7", fontWeight: 600 }}>{employees.length}</span>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div style={{ flex: 1, padding: "32px 40px", maxWidth: 1060 }}>
+
+        {/* ================= LIST VIEW ================= */}
+        {view === "list" && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, gap: 16, flexWrap: "wrap" }}>
+              <div>
+                <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 600, margin: 0 }}>Danh sách nhân viên</h1>
+                <p style={{ color: COLORS.inkSoft, fontSize: 14, margin: "4px 0 0" }}>Quản lý thông tin và hồ sơ toàn bộ nhân viên công ty.</p>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => fileInputRef.current?.click()} style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.surface, color: COLORS.ink, border: `1px solid ${COLORS.border}`, padding: "10px 14px", borderRadius: 7, cursor: "pointer", fontSize: 13.5, fontFamily: "inherit" }}>
+                  <Upload size={15} /> Nhập Excel
+                </button>
+                <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportFile} style={{ display: "none" }} />
+                <button onClick={exportToExcel} style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.surface, color: COLORS.ink, border: `1px solid ${COLORS.border}`, padding: "10px 14px", borderRadius: 7, cursor: "pointer", fontSize: 13.5, fontFamily: "inherit" }}>
+                  <Download size={15} /> Xuất Excel
+                </button>
+                <button onClick={openAddModal} style={{ display: "flex", alignItems: "center", gap: 7, background: COLORS.primary, color: "#fff", border: "none", padding: "10px 16px", borderRadius: 7, cursor: "pointer", fontSize: 14, fontWeight: 600, fontFamily: "inherit" }}>
+                  <Plus size={16} /> Thêm nhân viên
+                </button>
+              </div>
+            </div>
+
+            {importMsg && (
+              <div style={{ background: "#EFF5EF", color: COLORS.green, border: "1px solid #CFE3D1", borderRadius: 7, padding: "9px 14px", fontSize: 13, marginBottom: 16 }}>
+                {importMsg}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ position: "relative", maxWidth: 300, flex: "1 1 220px" }}>
+                <Search size={16} style={{ position: "absolute", left: 12, top: 11, color: COLORS.inkSoft }} />
+                <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Tìm theo tên, chức vụ, phòng ban..." style={{ ...inputStyle, paddingLeft: 36 }} />
+              </div>
+              <button onClick={() => setShowFilters((s) => !s)} style={{ display: "flex", alignItems: "center", gap: 6, background: showFilters ? "#EFEAE0" : COLORS.surface, border: `1px solid ${COLORS.border}`, padding: "9px 14px", borderRadius: 7, cursor: "pointer", fontSize: 13.5, fontFamily: "inherit" }}>
+                <SlidersHorizontal size={15} /> Bộ lọc
+              </button>
+            </div>
+
+            {showFilters && (
+              <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <div>
+                  <label style={label}>Phòng ban</label>
+                  <select style={{ ...inputStyle, width: 160 }} value={filterDept} onChange={(e) => { setFilterDept(e.target.value); setPage(1); }}>
+                    <option>Tất cả</option>
+                    {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={label}>Lương từ</label>
+                  <input type="number" style={{ ...inputStyle, width: 130 }} value={minSalary} onChange={(e) => { setMinSalary(e.target.value); setPage(1); }} placeholder="0" />
+                </div>
+                <div>
+                  <label style={label}>Lương đến</label>
+                  <input type="number" style={{ ...inputStyle, width: 130 }} value={maxSalary} onChange={(e) => { setMaxSalary(e.target.value); setPage(1); }} placeholder="Không giới hạn" />
+                </div>
+                <div>
+                  <label style={label}>Thâm niên từ (năm)</label>
+                  <input type="number" style={{ ...inputStyle, width: 110 }} value={minYears} onChange={(e) => { setMinYears(e.target.value); setPage(1); }} placeholder="0" />
+                </div>
+                <div>
+                  <label style={label}>Thâm niên đến (năm)</label>
+                  <input type="number" style={{ ...inputStyle, width: 110 }} value={maxYears} onChange={(e) => { setMaxYears(e.target.value); setPage(1); }} placeholder="Không giới hạn" />
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-end" }}>
+                  <button onClick={() => { setFilterDept("Tất cả"); setMinSalary(""); setMaxSalary(""); setMinYears(""); setMaxYears(""); }} style={{ padding: "9px 14px", borderRadius: 7, border: `1px solid ${COLORS.border}`, background: "none", cursor: "pointer", fontSize: 13.5, fontFamily: "inherit" }}>
+                    Xóa lọc
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ background: COLORS.surface, borderRadius: 10, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 900 }}>
+                  <thead>
+                    <tr style={{ background: "#F7F5F0", textAlign: "left" }}>
+                      <th className="sortable" onClick={() => toggleSort("name")} style={{ padding: "11px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>Họ tên <SortIcon colKey="name" /></span>
+                      </th>
+                      <th style={{ padding: "11px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>Chức vụ</th>
+                      <th className="sortable" onClick={() => toggleSort("department")} style={{ padding: "11px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>Phòng ban <SortIcon colKey="department" /></span>
+                      </th>
+                      <th className="sortable" onClick={() => toggleSort("hireDate")} style={{ padding: "11px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>Ngày vào làm <SortIcon colKey="hireDate" /></span>
+                      </th>
+                      <th className="sortable" onClick={() => toggleSort("years")} style={{ padding: "11px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>Thâm niên <SortIcon colKey="years" /></span>
+                      </th>
+                      <th className="sortable" onClick={() => toggleSort("salary")} style={{ padding: "11px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>Lương <SortIcon colKey="salary" /></span>
+                      </th>
+                      <th style={{ padding: "11px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>Liên hệ</th>
+                      <th style={{ padding: "11px 14px", borderBottom: `1px solid ${COLORS.border}` }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageItems.map((e) => {
+                      const yrs = yearsOfService(e.hireDate);
+                      return (
+                        <tr key={e.id} className="emp-row" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                          <td style={{ padding: "12px 14px", fontWeight: 600 }}>{e.name}</td>
+                          <td style={{ padding: "12px 14px", color: COLORS.inkSoft }}>{e.position}</td>
+                          <td style={{ padding: "12px 14px" }}>
+                            <span style={{ background: "#EFEAE0", color: COLORS.primary, padding: "3px 9px", borderRadius: 20, fontSize: 12 }}>{e.department}</span>
+                          </td>
+                          <td style={{ padding: "12px 14px", color: COLORS.inkSoft }}>{e.hireDate}</td>
+                          <td style={{ padding: "12px 14px" }}>
+                            <span style={{ color: yrs > 5 ? COLORS.accent : COLORS.inkSoft, fontWeight: yrs > 5 ? 600 : 400 }}>{yrs} năm</span>
+                          </td>
+                          <td style={{ padding: "12px 14px", color: COLORS.inkSoft }}>{formatVND(e.salary)}</td>
+                          <td style={{ padding: "12px 14px", color: COLORS.inkSoft, fontSize: 12.5 }}>{e.email}<br />{e.phone}</td>
+                          <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
+                            <button className="icon-btn" onClick={() => openEditModal(e)} style={{ border: "none", background: "none", cursor: "pointer", marginRight: 6, color: COLORS.primary }}><Pencil size={16} /></button>
+                            <button className="icon-btn" onClick={() => setConfirmDeleteId(e.id)} style={{ border: "none", background: "none", cursor: "pointer", color: COLORS.danger }}><Trash2 size={16} /></button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {pageItems.length === 0 && (
+                      <tr><td colSpan={8} style={{ padding: "28px 14px", textAlign: "center", color: COLORS.inkSoft }}>Không tìm thấy nhân viên phù hợp.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: `1px solid ${COLORS.border}`, fontSize: 13, color: COLORS.inkSoft }}>
+                <span>{filteredSorted.length} nhân viên</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "none", cursor: page <= 1 ? "not-allowed" : "pointer", opacity: page <= 1 ? 0.5 : 1, fontFamily: "inherit", fontSize: 13 }}>Trước</button>
+                  <span>Trang {page}/{totalPages}</span>
+                  <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "none", cursor: page >= totalPages ? "not-allowed" : "pointer", opacity: page >= totalPages ? 0.5 : 1, fontFamily: "inherit", fontSize: 13 }}>Sau</button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ================= STATS VIEW ================= */}
+        {view === "stats" && (
+          <>
+            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 600, margin: "0 0 4px" }}>Thống kê thâm niên</h1>
+            <p style={{ color: COLORS.inkSoft, fontSize: 14, margin: "0 0 24px" }}>Số lượng và tỷ lệ nhân viên đã làm việc trên 5 năm.</p>
+
+            <div style={{ display: "flex", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
+              <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "20px 24px", flex: "1 1 200px" }}>
+                <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 6 }}>Tổng số nhân viên</div>
+                <div style={{ fontFamily: "'Lora', serif", fontSize: 34, fontWeight: 600 }}>{stats.total}</div>
+              </div>
+              <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "20px 24px", flex: "1 1 200px" }}>
+                <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 6 }}>Làm việc trên 5 năm</div>
+                <div style={{ fontFamily: "'Lora', serif", fontSize: 34, fontWeight: 600, color: COLORS.accent }}>{stats.senior.length}</div>
+              </div>
+              <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "20px 24px", flex: "1 1 200px" }}>
+                <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 6 }}>Tỷ lệ thâm niên</div>
+                <div style={{ fontFamily: "'Lora', serif", fontSize: 34, fontWeight: 600 }}>{stats.total ? Math.round((stats.senior.length / stats.total) * 100) : 0}%</div>
+              </div>
+              <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "20px 24px", flex: "1 1 200px" }}>
+                <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 6 }}>Lương trung bình</div>
+                <div style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 600 }}>{formatVND(stats.avgSalary)}</div>
+              </div>
+            </div>
+
+            <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "22px 26px", marginBottom: 24 }}>
+              <div style={{ fontWeight: 600, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                <Briefcase size={16} color={COLORS.primary} /> Thâm niên trên 5 năm theo phòng ban
+              </div>
+              {stats.byDept.map((d) => (
+                <div key={d.department} style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                    <span>{d.department}</span><span style={{ color: COLORS.inkSoft }}>{d.senior}/{d.count}</span>
+                  </div>
+                  <div style={{ height: 8, background: "#EFEAE0", borderRadius: 6, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${d.count ? (d.senior / d.count) * 100 : 0}%`, background: COLORS.accent, borderRadius: 6 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "22px 26px" }}>
+              <div style={{ fontWeight: 600, marginBottom: 14 }}>Danh sách nhân viên trên 5 năm</div>
+              {stats.senior.length === 0 && <div style={{ color: COLORS.inkSoft, fontSize: 13.5 }}>Chưa có nhân viên nào đủ 5 năm thâm niên.</div>}
+              {stats.senior.map((e) => (
+                <div key={e.id} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${COLORS.border}`, fontSize: 13.5 }}>
+                  <span style={{ fontWeight: 600 }}>{e.name}</span>
+                  <span style={{ color: COLORS.inkSoft }}>{e.department} · {e.position}</span>
+                  <span style={{ color: COLORS.accent, fontWeight: 600 }}>{yearsOfService(e.hireDate)} năm</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ================= ATTENDANCE & LEAVE VIEW ================= */}
+        {view === "attendance" && (
+          <>
+            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 600, margin: "0 0 4px" }}>Chấm công & nghỉ phép</h1>
+            <p style={{ color: COLORS.inkSoft, fontSize: 14, margin: "0 0 22px" }}>Theo dõi ngày công tháng hiện tại và quản lý đơn xin nghỉ phép.</p>
+
+            <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 26 }}>
+              <div style={{ padding: "16px 20px", fontWeight: 600, borderBottom: `1px solid ${COLORS.border}` }}>Chấm công tháng hiện tại</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 760 }}>
+                  <thead>
+                    <tr style={{ background: "#F7F5F0", textAlign: "left" }}>
+                      {["Nhân viên", "Ngày công", "Đi trễ", "Về sớm", "Nghỉ không phép", "Phép còn lại"].map((h) => (
+                        <th key={h} style={{ padding: "10px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employees.map((e) => {
+                      const used = leaveUsedDays(e.id);
+                      const remaining = (e.leaveQuota || 12) - used;
+                      return (
+                        <tr key={e.id} className="emp-row" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                          <td style={{ padding: "10px 14px", fontWeight: 600 }}>{e.name}</td>
+                          <td style={{ padding: "8px 14px" }}><input className="num-input" type="number" style={smallInput} value={e.attendance.workDays} onChange={(ev) => updateAttendance(e.id, "workDays", ev.target.value)} /></td>
+                          <td style={{ padding: "8px 14px" }}><input className="num-input" type="number" style={smallInput} value={e.attendance.lateDays} onChange={(ev) => updateAttendance(e.id, "lateDays", ev.target.value)} /></td>
+                          <td style={{ padding: "8px 14px" }}><input className="num-input" type="number" style={smallInput} value={e.attendance.earlyDays} onChange={(ev) => updateAttendance(e.id, "earlyDays", ev.target.value)} /></td>
+                          <td style={{ padding: "8px 14px" }}><input className="num-input" type="number" style={smallInput} value={e.attendance.absentDays} onChange={(ev) => updateAttendance(e.id, "absentDays", ev.target.value)} /></td>
+                          <td style={{ padding: "10px 14px", color: remaining < 0 ? COLORS.danger : COLORS.inkSoft, fontWeight: 600 }}>{remaining} / {e.leaveQuota || 12} ngày</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ padding: "8px 20px", fontSize: 12, color: COLORS.inkSoft }}>Bấm trực tiếp vào ô số để chỉnh sửa dữ liệu chấm công.</div>
+            </div>
+
+            <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${COLORS.border}` }}>
+                <div style={{ fontWeight: 600 }}>Đơn xin nghỉ phép</div>
+                <button onClick={() => setLeaveModalOpen(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.primary, color: "#fff", border: "none", padding: "8px 14px", borderRadius: 7, cursor: "pointer", fontSize: 13.5, fontFamily: "inherit" }}>
+                  <Plus size={15} /> Tạo đơn nghỉ phép
+                </button>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 760 }}>
+                  <thead>
+                    <tr style={{ background: "#F7F5F0", textAlign: "left" }}>
+                      {["Nhân viên", "Từ ngày", "Đến ngày", "Số ngày", "Lý do", "Trạng thái", ""].map((h) => (
+                        <th key={h} style={{ padding: "10px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaveRequests.map((r) => {
+                      const days = leaveDaysCount(r.fromDate, r.toDate);
+                      const statusColor = r.status === "Đã duyệt" ? COLORS.green : r.status === "Từ chối" ? COLORS.danger : COLORS.accent;
+                      return (
+                        <tr key={r.id} className="emp-row" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                          <td style={{ padding: "10px 14px", fontWeight: 600 }}>{empName(r.employeeId)}</td>
+                          <td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{r.fromDate}</td>
+                          <td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{r.toDate}</td>
+                          <td style={{ padding: "10px 14px" }}>{days}</td>
+                          <td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{r.reason}</td>
+                          <td style={{ padding: "10px 14px" }}>
+                            <span style={{ color: statusColor, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                              {r.status === "Đã duyệt" ? <CheckCircle2 size={14} /> : r.status === "Từ chối" ? <XCircle size={14} /> : <Clock3 size={14} />} {r.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                            {r.status === "Chờ duyệt" && (
+                              <>
+                                <button onClick={() => setLeaveStatus(r.id, "Đã duyệt")} style={{ border: "none", background: "none", color: COLORS.green, cursor: "pointer", marginRight: 8, fontSize: 12.5, fontWeight: 600, fontFamily: "inherit" }}>Duyệt</button>
+                                <button onClick={() => setLeaveStatus(r.id, "Từ chối")} style={{ border: "none", background: "none", color: COLORS.danger, cursor: "pointer", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit" }}>Từ chối</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {leaveRequests.length === 0 && (
+                      <tr><td colSpan={7} style={{ padding: "24px 14px", textAlign: "center", color: COLORS.inkSoft }}>Chưa có đơn nghỉ phép nào.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ================= PAYROLL VIEW ================= */}
+        {view === "payroll" && (
+          <>
+            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 600, margin: "0 0 4px" }}>Bảng lương</h1>
+            <p style={{ color: COLORS.inkSoft, fontSize: 14, margin: "0 0 6px" }}>Lương cơ bản, phụ cấp, thưởng và các khoản khấu trừ theo tháng.</p>
+            <p style={{ color: "#A6A9AE", fontSize: 12, margin: "0 0 22px" }}>* Bảo hiểm ước tính 10.5% lương cơ bản; thuế TNCN tính theo biểu lũy tiến, giảm trừ bản thân 11.000.000đ và 4.400.000đ/người phụ thuộc. Đây là số liệu tham khảo, không thay thế tính toán chính thức.</p>
+
+            <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 26 }}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 980 }}>
+                  <thead>
+                    <tr style={{ background: "#F7F5F0", textAlign: "left" }}>
+                      {["Nhân viên", "Lương cơ bản", "Phụ cấp", "Thưởng", "Phụ thuộc", "Bảo hiểm", "Thuế TNCN", "Thực lãnh"].map((h) => (
+                        <th key={h} style={{ padding: "10px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employees.map((e) => {
+                      const p = computePayroll(e);
+                      return (
+                        <tr key={e.id} className="emp-row" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                          <td style={{ padding: "10px 14px", fontWeight: 600 }}>{e.name}</td>
+                          <td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{formatVND(e.salary)}</td>
+                          <td style={{ padding: "8px 14px" }}><input className="num-input" type="number" style={smallInput} value={e.allowance || 0} onChange={(ev) => updatePayrollField(e.id, "allowance", ev.target.value)} /></td>
+                          <td style={{ padding: "8px 14px" }}><input className="num-input" type="number" style={smallInput} value={e.bonus || 0} onChange={(ev) => updatePayrollField(e.id, "bonus", ev.target.value)} /></td>
+                          <td style={{ padding: "8px 14px" }}><input className="num-input" type="number" style={{ ...smallInput, width: 56 }} value={e.dependents || 0} onChange={(ev) => updatePayrollField(e.id, "dependents", ev.target.value)} /></td>
+                          <td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{formatVND(p.insurance)}</td>
+                          <td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{formatVND(p.tax)}</td>
+                          <td style={{ padding: "10px 14px", fontWeight: 700, color: COLORS.primary }}>{formatVND(p.net)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ padding: "8px 20px", fontSize: 12, color: COLORS.inkSoft }}>Bấm trực tiếp vào cột phụ cấp, thưởng, phụ thuộc để chỉnh sửa — thực lãnh cập nhật ngay.</div>
+            </div>
+
+            <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 22 }}>
+              <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${COLORS.border}` }}>
+                <div>
+                  <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}><TrendingUp size={16} color={COLORS.primary} /> Quản lý đợt tăng lương</div>
+                  <div style={{ color: COLORS.inkSoft, fontSize: 12.5, marginTop: 4 }}>Tạo một đợt và áp dụng cho nhiều nhân viên thay vì nhập từng người.</div>
+                </div>
+                <button onClick={() => setBatchModalOpen(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.primary, color: "#fff", border: "none", padding: "8px 14px", borderRadius: 7, cursor: "pointer", fontSize: 13.5, fontFamily: "inherit" }}><Plus size={15} /> Tạo đợt tăng lương</button>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 850 }}>
+                  <thead><tr style={{ background: "#F7F5F0", textAlign: "left" }}>
+                    {["Đợt tăng lương", "Ngày áp dụng", "Phạm vi", "Mức tăng", "Số nhân viên", "Trạng thái"].map((h) => <th key={h} style={{ padding: "10px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {[...salaryBatches].reverse().map((b) => <tr key={b.id} className="emp-row" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                      <td style={{ padding: "11px 14px", fontWeight: 600 }}>{b.name}</td>
+                      <td style={{ padding: "11px 14px", color: COLORS.inkSoft }}>{b.effectiveDate}</td>
+                      <td style={{ padding: "11px 14px", color: COLORS.inkSoft }}>{b.scope === "department" ? b.department : "Toàn công ty"}</td>
+                      <td style={{ padding: "11px 14px", color: COLORS.green, fontWeight: 600 }}>{b.increaseType === "percent" ? `+${b.increaseValue}%` : b.increaseType === "amount" ? `+${formatVND(b.increaseValue)}` : formatVND(b.increaseValue)}</td>
+                      <td style={{ padding: "11px 14px" }}>{b.employeeCount}</td>
+                      <td style={{ padding: "11px 14px" }}><span style={{ display: "inline-flex", alignItems: "center", padding: "4px 8px", borderRadius: 999, background: "#EAF6EF", color: COLORS.green, fontSize: 12, fontWeight: 600 }}>{b.status}</span></td>
+                    </tr>)}
+                    {salaryBatches.length === 0 && <tr><td colSpan={6} style={{ padding: "26px 14px", textAlign: "center", color: COLORS.inkSoft }}>Chưa có đợt tăng lương. Hãy tạo đợt đầu tiên.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ padding: "14px 20px", borderBottom: `1px solid ${COLORS.border}`, fontWeight: 600 }}>Lịch sử thay đổi lương</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 760 }}>
+                  <thead><tr style={{ background: "#F7F5F0", textAlign: "left" }}>{["Nhân viên", "Ngày", "Lương cũ", "Lương mới", "Ghi chú"].map((h) => <th key={h} style={{ padding: "10px 14px", fontWeight: 600, color: COLORS.inkSoft, fontSize: 12.5, borderBottom: `1px solid ${COLORS.border}` }}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {[...salaryHistory].reverse().map((r) => <tr key={r.id} className="emp-row" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                      <td style={{ padding: "10px 14px", fontWeight: 600 }}>{empName(r.employeeId)}</td><td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{r.date}</td><td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{formatVND(r.oldSalary)}</td><td style={{ padding: "10px 14px", color: COLORS.green, fontWeight: 600 }}>{formatVND(r.newSalary)}</td><td style={{ padding: "10px 14px", color: COLORS.inkSoft }}>{r.note}</td>
+                    </tr>)}
+                    {salaryHistory.length === 0 && <tr><td colSpan={5} style={{ padding: "24px 14px", textAlign: "center", color: COLORS.inkSoft }}>Chưa có lịch sử thay đổi lương.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ---- Add/Edit employee modal ---- */}
+      {modalOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(34,38,43,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
+          <div style={{ background: COLORS.surface, borderRadius: 12, padding: 28, width: "100%", maxWidth: 540, maxHeight: "88vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 600, margin: 0 }}>{editingId ? "Sửa thông tin nhân viên" : "Thêm nhân viên mới"}</h2>
+              <button onClick={closeModal} style={{ border: "none", background: "none", cursor: "pointer", color: COLORS.inkSoft }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div style={{ gridColumn: "1 / -1" }}><label style={label}>Họ tên</label><input style={inputStyle} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nguyễn Văn A" /></div>
+              <div><label style={label}>Chức vụ</label><input style={inputStyle} value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="Chuyên viên..." /></div>
+              <div><label style={label}>Phòng ban</label>
+                <select style={inputStyle} value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
+                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div><label style={label}>Ngày vào làm</label><input type="date" style={inputStyle} value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} /></div>
+              <div><label style={label}>Lương cơ bản (VNĐ)</label><input type="number" style={inputStyle} value={form.salary} onChange={(e) => setForm({ ...form, salary: e.target.value })} placeholder="15000000" /></div>
+              <div><label style={label}>Số người phụ thuộc</label><input type="number" style={inputStyle} value={form.dependents} onChange={(e) => setForm({ ...form, dependents: e.target.value })} placeholder="0" /></div>
+              <div><label style={label}>Email</label><input style={inputStyle} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="ten@congty.vn" /></div>
+              <div><label style={label}>Số điện thoại</label><input style={inputStyle} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="09xxxxxxxx" /></div>
+              <div style={{ gridColumn: "1 / -1" }}><label style={label}>Địa chỉ</label><input style={inputStyle} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Quận..., TP.HCM" /></div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
+              <button onClick={closeModal} style={{ padding: "10px 18px", borderRadius: 7, border: `1px solid ${COLORS.border}`, background: "none", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Hủy</button>
+              <button onClick={handleSave} disabled={!form.name.trim() || !form.hireDate} style={{ padding: "10px 18px", borderRadius: 7, border: "none", cursor: form.name.trim() && form.hireDate ? "pointer" : "not-allowed", background: form.name.trim() && form.hireDate ? COLORS.primary : "#B9C4D1", color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "inherit" }}>
+                {editingId ? "Lưu thay đổi" : "Thêm nhân viên"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Delete confirmation ---- */}
+      {confirmDeleteId !== null && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(34,38,43,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
+          <div style={{ background: COLORS.surface, borderRadius: 12, padding: 26, width: "100%", maxWidth: 380 }}>
+            <h3 style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 600, margin: "0 0 10px" }}>Xóa nhân viên?</h3>
+            <p style={{ color: COLORS.inkSoft, fontSize: 14, margin: "0 0 20px" }}>Thao tác này không thể hoàn tác. Bạn có chắc muốn xóa nhân viên này khỏi danh sách?</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setConfirmDeleteId(null)} style={{ padding: "9px 16px", borderRadius: 7, border: `1px solid ${COLORS.border}`, background: "none", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Hủy</button>
+              <button onClick={() => handleDelete(confirmDeleteId)} style={{ padding: "9px 16px", borderRadius: 7, border: "none", background: COLORS.danger, color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 600, fontFamily: "inherit" }}>Xóa</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Leave request modal ---- */}
+      {leaveModalOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(34,38,43,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
+          <div style={{ background: COLORS.surface, borderRadius: 12, padding: 28, width: "100%", maxWidth: 440 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "'Lora', serif", fontSize: 19, fontWeight: 600, margin: 0 }}>Tạo đơn nghỉ phép</h2>
+              <button onClick={() => setLeaveModalOpen(false)} style={{ border: "none", background: "none", cursor: "pointer", color: COLORS.inkSoft }}><X size={20} /></button>
+            </div>
+            <label style={label}>Nhân viên</label>
+            <select style={{ ...inputStyle, marginBottom: 14 }} value={leaveForm.employeeId} onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })}>
+              <option value="">-- Chọn nhân viên --</option>
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+            <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+              <div style={{ flex: 1 }}><label style={label}>Từ ngày</label><input type="date" style={inputStyle} value={leaveForm.fromDate} onChange={(e) => setLeaveForm({ ...leaveForm, fromDate: e.target.value })} /></div>
+              <div style={{ flex: 1 }}><label style={label}>Đến ngày</label><input type="date" style={inputStyle} value={leaveForm.toDate} onChange={(e) => setLeaveForm({ ...leaveForm, toDate: e.target.value })} /></div>
+            </div>
+            <label style={label}>Lý do</label>
+            <input style={{ ...inputStyle, marginBottom: 14 }} value={leaveForm.reason} onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })} placeholder="Việc gia đình, khám sức khỏe..." />
+
+            {(() => {
+              const invalidRange = leaveForm.fromDate && leaveForm.toDate && new Date(leaveForm.toDate) < new Date(leaveForm.fromDate);
+              const days = leaveDaysCount(leaveForm.fromDate, leaveForm.toDate);
+              const emp = employees.find((e) => e.id === Number(leaveForm.employeeId));
+              const remaining = emp ? (emp.leaveQuota || 12) - leaveUsedDays(emp.id) : null;
+              const overQuota = emp && days > 0 && days > remaining;
+              if (invalidRange) {
+                return <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 7, background: "#FCEEEE", color: COLORS.danger, fontSize: 12.5 }}>"Đến ngày" phải bằng hoặc sau "Từ ngày".</div>;
+              }
+              if (leaveForm.fromDate && leaveForm.toDate) {
+                return (
+                  <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 7, background: overQuota ? "#FCEEEE" : "#F7F9FB", color: overQuota ? COLORS.danger : COLORS.inkSoft, fontSize: 12.5 }}>
+                    Số ngày phép tính (ngày làm việc, không tính T7/CN): <b>{days}</b>{emp ? ` — còn lại ${remaining} / ${emp.leaveQuota || 12} ngày` : ""}
+                    {overQuota ? " — vượt quá số ngày phép còn lại!" : ""}
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setLeaveModalOpen(false)} style={{ padding: "10px 18px", borderRadius: 7, border: `1px solid ${COLORS.border}`, background: "none", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Hủy</button>
+              <button onClick={submitLeaveRequest} disabled={!leaveForm.employeeId || !leaveForm.fromDate || !leaveForm.toDate || new Date(leaveForm.toDate) < new Date(leaveForm.fromDate)} style={{ padding: "10px 18px", borderRadius: 7, border: "none", cursor: (!leaveForm.employeeId || !leaveForm.fromDate || !leaveForm.toDate || new Date(leaveForm.toDate) < new Date(leaveForm.fromDate)) ? "not-allowed" : "pointer", background: (!leaveForm.employeeId || !leaveForm.fromDate || !leaveForm.toDate || new Date(leaveForm.toDate) < new Date(leaveForm.fromDate)) ? "#B9C4D1" : COLORS.primary, color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "inherit" }}>Gửi đơn</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Batch salary raise modal ---- */}
+      {batchModalOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(34,38,43,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
+          <div style={{ background: COLORS.surface, borderRadius: 12, padding: 28, width: "100%", maxWidth: 560, maxHeight: "88vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div><h2 style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 600, margin: 0 }}>Tạo đợt tăng lương</h2><div style={{ color: COLORS.inkSoft, fontSize: 12.5, marginTop: 5 }}>Thiết lập một lần, hệ thống tự cập nhật cho toàn bộ đối tượng.</div></div>
+              <button onClick={() => setBatchModalOpen(false)} style={{ border: "none", background: "none", cursor: "pointer", color: COLORS.inkSoft }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div style={{ gridColumn: "1 / -1" }}><label style={label}>Tên đợt tăng lương</label><input style={inputStyle} value={batchForm.name} onChange={(e) => setBatchForm({ ...batchForm, name: e.target.value })} placeholder="Tăng lương định kỳ 2026 - Đợt 1" /></div>
+              <div><label style={label}>Ngày áp dụng</label><input type="date" style={inputStyle} value={batchForm.effectiveDate} onChange={(e) => setBatchForm({ ...batchForm, effectiveDate: e.target.value })} /></div>
+              <div><label style={label}>Đối tượng áp dụng</label><select style={inputStyle} value={batchForm.scope} onChange={(e) => setBatchForm({ ...batchForm, scope: e.target.value })}><option value="all">Toàn công ty</option><option value="department">Theo phòng ban</option></select></div>
+              {batchForm.scope === "department" && <div style={{ gridColumn: "1 / -1" }}><label style={label}>Phòng ban</label><select style={inputStyle} value={batchForm.department} onChange={(e) => setBatchForm({ ...batchForm, department: e.target.value })}>{DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}</select></div>}
+              <div><label style={label}>Cách tăng</label><select style={inputStyle} value={batchForm.increaseType} onChange={(e) => setBatchForm({ ...batchForm, increaseType: e.target.value })}><option value="percent">Tăng theo %</option><option value="amount">Tăng số tiền cố định</option><option value="newSalary">Đặt mức lương mới</option></select></div>
+              <div><label style={label}>{batchForm.increaseType === "percent" ? "Tỷ lệ tăng (%)" : batchForm.increaseType === "amount" ? "Số tiền tăng (VNĐ)" : "Mức lương mới (VNĐ)"}</label><input type="number" min="0" style={inputStyle} value={batchForm.increaseValue} onChange={(e) => setBatchForm({ ...batchForm, increaseValue: e.target.value })} placeholder={batchForm.increaseType === "percent" ? "8" : "1000000"} /></div>
+              <div style={{ gridColumn: "1 / -1" }}><label style={label}>Ghi chú</label><input style={inputStyle} value={batchForm.note} onChange={(e) => setBatchForm({ ...batchForm, note: e.target.value })} placeholder="Tăng lương định kỳ, đánh giá hiệu suất..." /></div>
+            </div>
+            {(() => { const targets = batchEmployees(); return <div style={{ marginTop: 18, padding: 14, borderRadius: 8, background: "#F7F9FB", border: `1px solid ${COLORS.border}` }}><div style={{ fontWeight: 600, fontSize: 13.5 }}>Xem trước</div><div style={{ color: COLORS.inkSoft, fontSize: 13, marginTop: 5 }}>Sẽ áp dụng cho <b style={{ color: COLORS.ink }}>{targets.length}</b> nhân viên. {targets.length > 0 && Number(batchForm.increaseValue) > 0 ? `Ví dụ: ${formatVND(targets[0].salary)} → ${formatVND(previewBatchSalary(targets[0]))}` : "Nhập mức tăng để xem mức lương mới."}</div></div> })()}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}><button onClick={() => setBatchModalOpen(false)} style={{ padding: "10px 18px", borderRadius: 7, border: `1px solid ${COLORS.border}`, background: "none", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Hủy</button><button onClick={submitBatchRaise} disabled={!batchForm.name.trim() || !batchForm.effectiveDate || !batchForm.increaseValue || batchEmployees().length === 0} style={{ padding: "10px 18px", borderRadius: 7, border: "none", cursor: "pointer", background: COLORS.primary, color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "inherit" }}>Tạo và áp dụng</button></div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<EmployeeManager />);
+</script>
+</body>
+</html>
