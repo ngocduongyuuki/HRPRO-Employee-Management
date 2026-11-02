@@ -52,6 +52,7 @@ This project was developed to demonstrate web application development, data mana
 
 <img width="1917" height="1042" alt="Screenshot 2026-11-02 200922" src="https://github.com/user-attachments/assets/ebdf6c99-4b2a-49b0-b5d0-dbc9700e8d2c" />
 
+<img width="1917" height="1042" alt="Screenshot 2026-11-02 201131" src="https://github.com/user-attachments/assets/c4786822-efdf-4a02-8809-2f68bbb1e496" />
 
 ---
 
@@ -101,6 +102,7 @@ Dự án được thực hiện nhằm thể hiện khả năng xây dựng ứn
 
 <img width="1917" height="1042" alt="Screenshot 2026-11-02 200922" src="https://github.com/user-attachments/assets/7c166bee-3501-4690-bf79-fe5ed9020505" />
 
+<img width="1917" height="1042" alt="Screenshot 2026-11-02 201131" src="https://github.com/user-attachments/assets/8705725d-3745-4e83-8406-b6df6fb5e4b0" />
 
 ---
 
