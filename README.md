@@ -50,7 +50,8 @@ This project was developed to demonstrate web application development, data mana
 
 ### 📷 Screenshots
 
-Screenshots of the application can be added here.
+<img width="1917" height="1042" alt="Screenshot 2026-11-02 200922" src="https://github.com/user-attachments/assets/ebdf6c99-4b2a-49b0-b5d0-dbc9700e8d2c" />
+
 
 ---
 
@@ -98,7 +99,8 @@ Dự án được thực hiện nhằm thể hiện khả năng xây dựng ứn
 
 ### 📷 Hình ảnh giao diện
 
-Có thể bổ sung ảnh chụp màn hình giao diện ứng dụng tại đây.
+<img width="1917" height="1042" alt="Screenshot 2026-11-02 200922" src="https://github.com/user-attachments/assets/7c166bee-3501-4690-bf79-fe5ed9020505" />
+
 
 ---
 
